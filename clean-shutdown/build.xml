@@ -56,24 +56,6 @@ Available targets are:
                dirsep="/"/>
   
   <target name="make-manifests">
-    <echo file="${shutdown.manifest}" append="false">
-Main-Class: ${shutdown.fullname}
-Class-Path: ${manifest.classpath}
-    </echo>
-    <!--
-      Clean up the output from echo while keeping the above lines easy
-      to edit.
-    -->
-    <replaceregexp file="${shutdown.manifest}"
-                   flags="m"
-                   match="^\n"
-                   replace=""/>
-    <replaceregexp file="${shutdown.manifest}"
-                   flags="gm"
-                   byline="true"
-                   match="^\s+"
-                   replace=""/>
-
     <echo file="${zone-monitor.manifest}" append="false">
 Main-Class: ${zone-monitor.fullname}
 Class-Path: ${manifest.classpath}
@@ -118,12 +100,6 @@ Class-Path: ${manifest.classpath}
       <classpath refid="master-classpath"/>
     </javac>
     
-    <!-- Build the shutdown. -->
-
-    <jar basedir="${classes}"
-         manifest="${shutdown.manifest}"
-         jarfile="${shutdown.jar}"/>
-    
     <!-- Build the zone monitor. -->
 
     <jar basedir="${classes}"
@@ -141,7 +117,6 @@ Class-Path: ${manifest.classpath}
   <target name="clean">
     <delete dir="${lib}" quiet="true"/>
     <delete dir="${classes}" quiet="true"/>
-    <delete file="${shutdown.manifest}" quiet="true"/>
     <delete file="${zone-monitor.manifest}" quiet="true"/>
     <delete file="${zone-shutdown.manifest}" quiet="true"/>
 
