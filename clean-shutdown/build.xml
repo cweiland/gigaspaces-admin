@@ -1,0 +1,154 @@
+<?xml version="1.0"?>
+
+<project name="clean-shutdown"
+         default="usage"
+         basedir=".">
+
+  <property environment="env"/>
+  <property file="${basedir}/build.properties"/>
+
+  <property name="src" value="${basedir}/src"/>
+  <property name="classes" value="${basedir}/classes"/>
+  <property name="lib" value="${basedir}/lib"/>
+
+  <property name="zone-monitor.fullname"
+            value="com.gigaspaces.utils.admin.ZoneMonitor"/>
+  <property name="zone-monitor.manifest"
+            value="${basedir}/zone-monitor.manifest"/>
+  <property name="zone-monitor.jar" value="${lib}/zone-monitor.jar"/>
+
+  <property name="zone-shutdown.fullname"
+            value="com.gigaspaces.utils.admin.ZoneShutdown"/>
+  <property name="zone-shutdown.manifest"
+            value="${basedir}/zone-shutdown.manifest"/>
+  <property name="zone-shutdown.jar" value="${lib}/zone-shutdown.jar"/>
+
+  <path id="master-classpath">
+    <fileset dir="${gshome}/lib/required">
+      <include name="*.jar"/>
+    </fileset>
+  </path>
+
+  <target name="usage">
+    <echo level="info">
+Available targets are:
+  build    Build project in current directory.
+  clean    Remove all generated files and directories.
+  rebuild  Clean and build.
+
+  Project name = ${ant.project.name}
+  GigaSpaces home = ${gshome}
+  Java home = ${env.JAVA_HOME}
+    </echo>
+  </target>
+
+  <target name="make-build-dirs">
+    <mkdir dir="${classes}"/>
+    <mkdir dir="${lib}"/>
+  </target>
+
+  <!--
+      This target is necessary to allow fixed paths in the manifest files.
+  -->
+  <pathconvert property="manifest.classpath"
+               refid="master-classpath"
+               pathsep=" "
+               dirsep="/"/>
+  
+  <target name="make-manifests">
+    <echo file="${shutdown.manifest}" append="false">
+Main-Class: ${shutdown.fullname}
+Class-Path: ${manifest.classpath}
+    </echo>
+    <!--
+      Clean up the output from echo while keeping the above lines easy
+      to edit.
+    -->
+    <replaceregexp file="${shutdown.manifest}"
+                   flags="m"
+                   match="^\n"
+                   replace=""/>
+    <replaceregexp file="${shutdown.manifest}"
+                   flags="gm"
+                   byline="true"
+                   match="^\s+"
+                   replace=""/>
+
+    <echo file="${zone-monitor.manifest}" append="false">
+Main-Class: ${zone-monitor.fullname}
+Class-Path: ${manifest.classpath}
+    </echo>
+    <!--
+      Clean up the output from echo while keeping the above lines easy
+      to edit.
+    -->
+    <replaceregexp file="${zone-monitor.manifest}"
+                   flags="m"
+                   match="^\n"
+                   replace=""/>
+    <replaceregexp file="${zone-monitor.manifest}"
+                   flags="gm"
+                   byline="true"
+                   match="^\s+"
+                   replace=""/>
+
+    <echo file="${zone-shutdown.manifest}" append="false">
+Main-Class: ${zone-shutdown.fullname}
+Class-Path: ${manifest.classpath}
+    </echo>
+    <!--
+      Clean up the output from echo while keeping the above lines easy
+      to edit.
+    -->
+    <replaceregexp file="${zone-shutdown.manifest}"
+                   flags="m"
+                   match="^\n"
+                   replace=""/>
+    <replaceregexp file="${zone-shutdown.manifest}"
+                   flags="gm"
+                   byline="true"
+                   match="^\s+"
+                   replace=""/>
+  </target>
+
+  <target name="build" depends="make-build-dirs,make-manifests">
+
+    <!-- Build the classes. -->
+    <javac srcdir="${src}" destdir="${classes}">
+      <classpath refid="master-classpath"/>
+    </javac>
+    
+    <!-- Build the shutdown. -->
+
+    <jar basedir="${classes}"
+         manifest="${shutdown.manifest}"
+         jarfile="${shutdown.jar}"/>
+    
+    <!-- Build the zone monitor. -->
+
+    <jar basedir="${classes}"
+         manifest="${zone-monitor.manifest}"
+         jarfile="${zone-monitor.jar}"/>
+    
+    <!-- Build the zone shutdown. -->
+
+    <jar basedir="${classes}"
+         manifest="${zone-shutdown.manifest}"
+         jarfile="${zone-shutdown.jar}"/>
+    
+  </target>
+
+  <target name="clean">
+    <delete dir="${lib}" quiet="true"/>
+    <delete dir="${classes}" quiet="true"/>
+    <delete file="${shutdown.manifest}" quiet="true"/>
+    <delete file="${zone-monitor.manifest}" quiet="true"/>
+    <delete file="${zone-shutdown.manifest}" quiet="true"/>
+
+    <delete quiet="true">
+      <fileset dir="." includes="**/*.class"/>
+    </delete>
+  </target>
+
+  <target name="rebuild" depends="clean,build"/>
+</project>
