@@ -92,21 +92,33 @@ public class ZoneShutdown
 
 
   /**
-   * Get the processing units associated with the specified GSC.
+   * Get the set of unique processing units associated with the GSCs in
+   * the zone.
    */
-  private ArrayList<ProcessingUnit> processingUnits(GridServiceContainer gsc)
+  private HashSet<ProcessingUnit> uniqueProcessingUnits()
     {
-    logger_.info("ZoneShutdown.processingUnits() called.");
-    ArrayList<ProcessingUnit> pus = new ArrayList<ProcessingUnit>();
-    ProcessingUnitInstance[] instances = gsc.getProcessingUnitInstances();
+    HashSet<ProcessingUnit> pus = new HashSet<ProcessingUnit>();
+    int totalInstances = 0;
+    
+    synchronized(gscs_)
+      {
+      for (GridServiceContainer gsc : gscs_)
+        for (ProcessingUnitInstance instance : gsc.getProcessingUnitInstances())
+          {
+          pus.add(instance.getProcessingUnit());
+          ++totalInstances;
+          }
+      }
 
-    for (ProcessingUnitInstance instance : instances)
-      pus.add(instance.getProcessingUnit());
+    logger_.info("ZoneShutdown.uniqueProcessingUnits() found "
+                 + pus.size()
+                 + " unique PUs from "
+                 + totalInstances
+                 + " instances.");
 
-    logger_.info("ZoneShutdown.processingUnits() returning.");
     return pus;
     }
-
+  
 
   /**
    * Undeploy all processing units running in GSCs in the specified zone.
@@ -114,16 +126,14 @@ public class ZoneShutdown
   private void undeployProcessingUnits()
     {
     logger_.info("ZoneShutdown.undeployProcessingUnits() called.");
-    synchronized(gscs_)
+
+    for (ProcessingUnit pu : uniqueProcessingUnits())
       {
-      for (GridServiceContainer gsc : gscs_)
-        for (ProcessingUnit pu : processingUnits(gsc))
-          {
-          logger_.info("Undeploying ProcessingUnit " + pu.getName());
-          pu.undeployAndWait();
-          logger_.info("ProcessingUnit " + pu.getName() + " undeployed.");
-          }
+      logger_.info("Undeploying ProcessingUnit " + pu.getName());
+      pu.undeployAndWait();
+      logger_.info("ProcessingUnit " + pu.getName() + " undeployed.");
       }
+
     logger_.info("ZoneShutdown.undeployProcessingUnits() returning.");
     }
 
@@ -139,12 +149,14 @@ public class ZoneShutdown
       for (GridServiceContainer gsc : gscs_)
         {
         gsas_.add(gsc.getGridServiceAgent());
-        if (processingUnits(gsc).isEmpty())
+        if (gsc.getProcessingUnitInstances().length == 0)
           {
           logger_.info("ZoneShutdown.killGSCs(): killing GSC.");
           gsc.kill();
           logger_.info("ZoneShutdown.killGSCs(): killed GSC.");
           }
+        else
+          logger_.warning("ZoneShutdown.killGSCs(): GSC still has PUs.");
         }
       }
     logger_.info("ZoneShutdown.killGSCs() returning.");
