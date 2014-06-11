@@ -96,12 +96,14 @@ public class ZoneShutdown
    */
   private ArrayList<ProcessingUnit> processingUnits(GridServiceContainer gsc)
     {
+    logger_.info("ZoneShutdown.processingUnits() called.");
     ArrayList<ProcessingUnit> pus = new ArrayList<ProcessingUnit>();
     ProcessingUnitInstance[] instances = gsc.getProcessingUnitInstances();
 
     for (ProcessingUnitInstance instance : instances)
       pus.add(instance.getProcessingUnit());
 
+    logger_.info("ZoneShutdown.processingUnits() returning.");
     return pus;
     }
 
@@ -111,6 +113,7 @@ public class ZoneShutdown
    */
   private void undeployProcessingUnits()
     {
+    logger_.info("ZoneShutdown.undeployProcessingUnits() called.");
     synchronized(gscs_)
       {
       for (GridServiceContainer gsc : gscs_)
@@ -121,6 +124,7 @@ public class ZoneShutdown
           logger_.info("ProcessingUnit " + pu.getName() + " undeployed.");
           }
       }
+    logger_.info("ZoneShutdown.undeployProcessingUnits() returning.");
     }
 
 
@@ -129,15 +133,21 @@ public class ZoneShutdown
    */
   private void killGSCs()
     {
+    logger_.info("ZoneShutdown.killGSCs() called.");
     synchronized(gscs_)
       {
       for (GridServiceContainer gsc : gscs_)
         {
         gsas_.add(gsc.getGridServiceAgent());
         if (processingUnits(gsc).isEmpty())
+          {
+          logger_.info("ZoneShutdown.killGSCs(): killing GSC.");
           gsc.kill();
+          logger_.info("ZoneShutdown.killGSCs(): killed GSC.");
+          }
         }
       }
+    logger_.info("ZoneShutdown.killGSCs() returning.");
     }
 
 
@@ -146,11 +156,17 @@ public class ZoneShutdown
    */
   private void shutdownGSAs()
     {
+    logger_.info("ZoneShutdown.shutdownGSAs() called.");
     synchronized(gsas_)
       {
       for (GridServiceAgent gsa : gsas_)
+        {
+        logger_.info("ZoneShutdown.shutdownGSAs(): shutting down GSA.");
         gsa.shutdown();
+        logger_.info("ZoneShutdown.shutdownGSAs(): GSA shut down.");
+        }
       }
+    logger_.info("ZoneShutdown.shutdownGSAs() returning.");
     }
 
 
@@ -159,6 +175,7 @@ public class ZoneShutdown
    */
   private boolean attemptShutdown()
     {
+    logger_.info("ZoneShutdown.attemptShutdown() called.");
     if (readyToShutdown())
       {
       undeployProcessingUnits();
@@ -167,6 +184,7 @@ public class ZoneShutdown
       done();
       }
 
+    logger_.info("ZoneShutdown.attemptShutdown() returning.");
     return isDone();
     }
 
@@ -198,8 +216,8 @@ public class ZoneShutdown
    */
   public void processingUnitAdded(ProcessingUnit pu)
     {
-    synchronized(pus_) { pus_.add(pu); }
     logger_.info("ProcessingUnit " + pu.getName() + " added.");
+    synchronized(pus_) { pus_.add(pu); }
     
     updated();
     }
@@ -219,13 +237,18 @@ public class ZoneShutdown
         Thread.sleep(SHUTDOWN_ATTEMPT_INTERVAL);
         if (attemptShutdown())
           {
+          logger_.info("ZoneShutdown.run():  removing event listener.");
           admin_.removeEventListener(this);
+          logger_.info("ZoneShutdown.run():  closing admin.");
           admin_.close();
+          logger_.info("ZoneShutdown.run():  done.");
           break;
           }
         }
       catch(InterruptedException e) { }
       }
+
+    logger_.info("ZoneShutdown.run() returning.");
     }
 
 

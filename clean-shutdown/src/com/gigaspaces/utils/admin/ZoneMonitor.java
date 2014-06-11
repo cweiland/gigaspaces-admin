@@ -11,69 +11,44 @@ package com.gigaspaces.utils.admin;
 
 import org.openspaces.admin.Admin;
 import org.openspaces.admin.AdminFactory;
-import org.openspaces.admin.gsc.GridServiceContainer;
-import org.openspaces.admin.gsc.events.GridServiceContainerAddedEventListener;
-import org.openspaces.admin.zone.Zone;
 
 import java.util.ArrayList;
 
 import java.util.logging.Logger;
 
-public class ZoneMonitor
-  implements Runnable,
-             GridServiceContainerAddedEventListener
+public class ZoneMonitor implements Runnable
 {
-  private static final long MONITOR_INTERVAL = 2000;  // 2 seconds
-
   private static Logger logger_ = Logger.getLogger(ZoneMonitor.class.getName());
-  private static Object threadMonitor_ = new Object();
 
   private Admin admin_ = null;
-  private String zoneName_ = null;
-  private int gscCount_ = 0;
-  private ArrayList<GridServiceContainer> gscs_
-    = new ArrayList<GridServiceContainer>();
+  private ZoneGSCMonitor zoneGSCMonitor_ = null;
+
+  private Admin admin()
+    {
+    if (admin_ == null)
+      {
+      String lookupGroups = System.getenv("LOOKUPGROUPS");
+      String lookupLocators = System.getenv("LOOKUPLOCATORS");
+
+      AdminFactory factory = new AdminFactory();
+      if (lookupGroups != null)
+        factory.addGroups(lookupGroups);
+      if (lookupLocators != null)
+        factory.addLocators(lookupLocators);
+
+      admin_ = factory.createAdmin();
+      }
+
+    return admin_;
+    }
+
 
   /**
    * The full constructor for the ZoneMonitor class.
    */
   public ZoneMonitor(String zoneName,int gscCount)
     {
-    zoneName_ = zoneName;
-    gscCount_ = gscCount;
-    
-    String lookupGroups = System.getenv("LOOKUPGROUPS");
-    String lookupLocators = System.getenv("LOOKUPLOCATORS");
-
-    AdminFactory factory = new AdminFactory();
-    if (lookupGroups != null)
-      factory.addGroups(lookupGroups);
-    if (lookupLocators != null)
-      factory.addLocators(lookupLocators);
-
-    admin_ = factory.createAdmin();
-    }
-
-
-  public boolean isDone() { return (gscs_.size() >= gscCount_); }
-
-
-  /**
-   * Method called when a GSC is added.  This method is inherited from
-   * the GridServiceContainerAddedEventListener interface.
-   */
-  public void gridServiceContainerAdded(GridServiceContainer gsc)
-    {
-    logger_.info("GridServiceContainer found.");
-    for (Zone zone : gsc.getZones().values())
-      {
-      logger_.info("  " + zone.getName());
-      if (zoneName_.equals(zone.getName()))
-        {
-        synchronized(gscs_) { gscs_.add(gsc); }
-        logger_.info("GridServiceContainer added.");
-        }
-      }
+    zoneGSCMonitor_ = new ZoneGSCMonitor(admin(),zoneName,gscCount);
     }
 
 
@@ -82,15 +57,15 @@ public class ZoneMonitor
    */
   public void run()
     {
-    admin_.addEventListener(this);
+    Thread zoneGSCThread = new Thread(zoneGSCMonitor_);
+    zoneGSCThread.start();
 
-    while (!isDone())
+    while (!zoneGSCMonitor_.isDone())
       {
-      try { Thread.sleep(MONITOR_INTERVAL); }
-      catch(InterruptedException e) { }
+      try { zoneGSCThread.join(); }
+      catch(InterruptedException ignore) { }
       }
 
-    admin_.removeEventListener(this);
     admin_.close();
     }
 
@@ -115,5 +90,7 @@ public class ZoneMonitor
       logger_.info("Usage:  java "
                    + ZoneMonitor.class.getName()
                    + " <zone-name> <gsc-count>");
+
+    System.exit(0);
     }
 }  // end ZoneMonitor
