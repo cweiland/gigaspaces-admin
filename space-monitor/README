@@ -11,8 +11,14 @@ The important design goals of this project include:
 All metrics are output as a comma separated value list in RFC 4180
 format with this structure:
 
-  timestamp,metric-type,value-1,value-2,...,value-n
+  timestamp,space-name,metric-type,value-1,value-2,...,value-n
 
 where timestamp is in milliseconds since January 1, 1970.  There may
 be different numbers of values for different metric types.
 
+To build the space monitor, set your JSHOMEDIR environment variable to
+the GigaSpaces XAP installation directory and then run 'ant build'.
+
+To run the space monitor, set your LOOKUPLOCATORS or LOOKUPGROUPS
+environment variable and run 'bin/monitor'.  By default, the output
+will be written to /tmp/space-monitor.log.
