@@ -1,0 +1,67 @@
+<?xml version="1.0"?>
+
+<project name="space-monitor"
+         default="usage"
+         basedir=".">
+
+  <property environment="env"/>
+  <property file="${basedir}/build.properties"/>
+
+  <property name="src" value="${basedir}/src"/>
+  <property name="classes" value="${basedir}/classes"/>
+  <property name="lib" value="${basedir}/lib"/>
+
+  <property name="monitor.fullname"
+            value="com.gigaspaces.examples.monitor.SpaceMonitor"/>
+  <property name="monitor.manifest" value="${basedir}/monitor.manifest"/>
+  <property name="monitor.jar" value="${lib}/monitor.jar"/>
+
+  <path id="master-classpath">
+    <fileset dir="${gshome}/lib/required">
+      <include name="*.jar"/>
+    </fileset>
+  </path>
+
+  <target name="usage">
+    <echo level="info">
+Available targets are:
+  build    Build project in current directory.
+  clean    Remove all generated files and directories.
+  rebuild  Clean and build.
+
+  Project name = ${ant.project.name}
+  GigaSpaces home = ${gshome}
+  Java home = ${env.JAVA_HOME}
+    </echo>
+  </target>
+
+  <target name="make-build-dirs">
+    <mkdir dir="${classes}"/>
+    <mkdir dir="${lib}"/>
+  </target>
+
+  <target name="build" depends="make-build-dirs">
+
+    <!-- Build all the classes. -->
+
+    <javac srcdir="${src}" destdir="${classes}">
+      <classpath refid="master-classpath"/>
+    </javac>
+
+    <!-- Build the monitor. -->
+
+    <jar basedir="${classes}"
+         jarfile="${monitor.jar}"/>
+  </target>
+
+  <target name="clean">
+    <delete dir="${classes}" quiet="true"/>
+    <delete dir="${lib}" quiet="true"/>
+
+    <delete quiet="true">
+      <fileset dir="." includes="**/*.class"/>
+    </delete>
+  </target>
+
+  <target name="rebuild" depends="clean,build"/>
+</project>

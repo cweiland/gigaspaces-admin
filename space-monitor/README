@@ -1,0 +1,18 @@
+This directory contains examples of using the GigaSpaces XAP Admin API
+to monitor a running space.
+
+The important design goals of this project include:
+  - Minimize impact on the running system
+  - Decouple the capture of metrics from the analysis and presentation
+    of results
+  - Support pluggable, composable output mechanisms
+  - Allow simple configuration of which metrics to capture
+
+All metrics are output as a comma separated value list in RFC 4180
+format with this structure:
+
+  timestamp,metric-type,value-1,value-2,...,value-n
+
+where timestamp is in milliseconds since January 1, 1970.  There may
+be different numbers of values for different metric types.
+
